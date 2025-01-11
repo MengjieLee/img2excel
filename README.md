@@ -130,7 +130,52 @@ project_a/
     └── storage.py          # MinIO存储模块
 ```
 
+## 分支管理
+
+项目采用以下分支策略：
+
+- `main`: 生产环境分支，保持稳定可用状态
+  - 只接受来自 `dev` 分支的合并请求
+  - 每次合并都会自动构建并发布新版本
+  - 所有合并到 main 的代码必须经过完整测试
+
+- `dev`: 开发分支，用于功能开发和测试
+  - 所有新功能都在此分支上开发
+  - 功能开发完成后提交 PR 到 main 分支
+  - 定期从 main 分支同步更新
+
+- 功能分支: 从 dev 分支创建，命名格式为 `feature/功能名称`
+  - 单个功能开发完成后合并回 dev 分支
+  - 合并前需要进行代码审查
+  - 合并后删除功能分支
+
+### 分支工作流程
+
+1. 从 dev 分支创建功能分支：
+```bash
+git checkout dev
+git pull
+git checkout -b feature/新功能名称
+```
+
+2. 开发完成后合并到 dev：
+```bash
+git checkout dev
+git pull
+git merge feature/新功能名称
+git push origin dev
+```
+
+3. 提交 PR 到 main 分支：
+在 GitHub 上创建从 dev 到 main 的 Pull Request
+
 ## 更新日志
+
+### [2025-01-11]: [latest]
+- 优化项目分支管理策略
+- 创建开发分支(dev)用于新功能开发
+- 更新文档，添加分支管理说明
+- 规范化代码提交流程
 
 ### [2025-01-10]: [1.3.6]
 - 优化 Streamlit UI，将弃用的 use_column_width 参数更新为 use_container_width
