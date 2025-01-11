@@ -20,7 +20,7 @@ env_path = ROOT_DIR / '.env'
 if not env_path.exists():
     load_dotenv(env_path)
 else:
-    st.warning("WARNING: .env file not found, params will be loaded from env vars")
+    st.warning("WARNING: .env file not found, params will be loaded from env vars!")
 
 # 验证必要的环境变量
 REQUIRED_ENV_VARS = {
