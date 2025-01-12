@@ -1,16 +1,38 @@
 import streamlit as st
 import os
 from dotenv import load_dotenv
-import uuid
-from utils.image_processor import ImageProcessor
-from utils.qwen_processor import QwenProcessor
-from utils.excel_processor import ExcelProcessor
-from utils.storage import StorageManager
+from utils.storage import MinioStorage
+from utils.auth import (
+    authenticate_user,
+    create_user,
+    get_user_by_email,
+    create_access_token,
+    init_db,
+)
+from utils.auth.database import get_db
 from PIL import Image
 import io
 import sys
 from pathlib import Path
 import tempfile
+import uuid
+from utils.image_processor import ImageProcessor
+from utils.qwen_processor import QwenProcessor
+from utils.excel_processor import ExcelProcessor
+from utils.storage import StorageManager
+
+# 加载环境变量
+load_dotenv()
+
+# 初始化数据库
+init_db()
+
+# 页面配置
+st.set_page_config(
+    page_title="图片转Excel工具",
+    page_icon="📊",
+    layout="wide"
+)
 
 # 获取项目根目录
 ROOT_DIR = Path(__file__).resolve().parent
@@ -114,11 +136,91 @@ def display_result(result, file_url=None):
         st.success("Excel文件已生成并保存")
         st.markdown(f"[点击下载Excel文件]({file_url})")
 
-def main():
-    st.title("报销单处理系统")
-    st.caption("使用千问AI进行智能识别")
+def init_session_state():
+    """初始化会话状态"""
+    if "user" not in st.session_state:
+        st.session_state.user = None
+    if "authenticated" not in st.session_state:
+        st.session_state.authenticated = False
+
+def login_form():
+    """登录表单"""
+    with st.form("login_form"):
+        email = st.text_input("邮箱")
+        password = st.text_input("密码", type="password")
+        submit = st.form_submit_button("登录")
+
+        if submit:
+            db = next(get_db())
+            user = authenticate_user(db, email, password)
+            if user:
+                st.session_state.user = user
+                st.session_state.authenticated = True
+                st.success("登录成功！")
+                st.experimental_rerun()
+            else:
+                st.error("邮箱或密码错误！")
+
+def register_form():
+    """注册表单"""
+    with st.form("register_form"):
+        email = st.text_input("邮箱")
+        password = st.text_input("密码", type="password")
+        confirm_password = st.text_input("确认密码", type="password")
+        submit = st.form_submit_button("注册")
+
+        if submit:
+            if password != confirm_password:
+                st.error("两次输入的密码不一致！")
+                return
+
+            db = next(get_db())
+            existing_user = get_user_by_email(db, email)
+            if existing_user:
+                st.error("该邮箱已被注册！")
+                return
+
+            try:
+                user = create_user(db, email, password)
+                st.success("注册成功！请登录。")
+            except Exception as e:
+                st.error(f"注册失败：{str(e)}")
+
+def main_app():
+    """主应用界面"""
+    st.title("📊 图片转Excel工具")
     
-    # 文件上传区域
+    # 检查环境变量
+    required_env_vars = {
+        "DASHSCOPE_API_KEY": "DashScope API密钥",
+        "MINIO_HOST": "MinIO服务器地址",
+        "MINIO_ACCESS_KEY": "MinIO访问密钥",
+        "MINIO_SECRET_KEY": "MinIO秘密密钥"
+    }
+    
+    missing_vars = [name for var, name in required_env_vars.items() 
+                   if not os.getenv(var)]
+    
+    if missing_vars:
+        st.error(f"缺少必要的环境变量：{', '.join(missing_vars)}")
+        st.info("请确保在 .env 文件中设置了所有必要的环境变量。")
+        return
+
+    # 初始化MinIO存储
+    try:
+        storage = MinioStorage()
+    except Exception as e:
+        st.error(f"MinIO连接失败：{str(e)}")
+        return
+
+    # 显示用户信息
+    st.sidebar.write(f"当前用户：{st.session_state.user.email}")
+    if st.sidebar.button("退出登录"):
+        st.session_state.user = None
+        st.session_state.authenticated = False
+        st.experimental_rerun()
+
+    # 上传区域
     uploaded_files = st.file_uploader(
         "上传报销单图片",
         type=["jpg", "jpeg", "png"],
@@ -126,7 +228,6 @@ def main():
         key="file_uploader"
     )
     
-    # 处理上传的文件
     if uploaded_files:
         for uploaded_file in uploaded_files:
             # 读取图片数据
@@ -147,6 +248,21 @@ def main():
                         display_result(result, file_url)
                     else:
                         st.error(f"识别失败: {error}")
+
+def main():
+    """主函数"""
+    init_session_state()
+
+    if not st.session_state.authenticated:
+        tab1, tab2 = st.tabs(["登录", "注册"])
+        
+        with tab1:
+            login_form()
+        
+        with tab2:
+            register_form()
+    else:
+        main_app()
 
 if __name__ == "__main__":
     main()

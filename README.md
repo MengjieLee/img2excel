@@ -18,6 +18,10 @@
   - 自动生成带有时间戳的文件名
   - 提供7天有效的下载链接
 - 提供导出和清除功能
+- 用户管理
+  - 邮箱注册
+  - 密码登录
+  - 会话管理
 
 ## 技术栈
 
@@ -34,6 +38,49 @@
 - MinIO服务器
 - Docker（用于容器化部署）
 - 依赖包：见 requirements.txt
+
+## 环境配置
+
+### 1. 安装依赖
+```bash
+pip install -r requirements.txt
+```
+
+### 2. 配置环境变量
+复制 `.env.example` 文件为 `.env`，并填写相应的配置：
+
+```bash
+cp .env.example .env
+```
+
+必需的环境变量包括：
+- MinIO配置（文件存储）
+  - `MINIO_HOST`: MinIO服务器地址
+  - `MINIO_ACCESS_KEY`: 访问密钥
+  - `MINIO_SECRET_KEY`: 秘密密钥
+
+- DashScope配置（AI服务）
+  - `DASHSCOPE_API_KEY`: API密钥
+
+- MySQL配置（用户数据）
+  - `MYSQL_USER`: 数据库用户名
+  - `MYSQL_PASSWORD`: 数据库密码
+  - `MYSQL_HOST`: 数据库地址
+  - `MYSQL_PORT`: 数据库端口
+  - `MYSQL_DATABASE`: 数据库名称
+
+- JWT配置（用户认证）
+  - `JWT_SECRET_KEY`: JWT密钥
+  - `JWT_ALGORITHM`: 加密算法（默认HS256）
+
+### 3. 初始化数据库
+```bash
+# 登录MySQL
+mysql -u root -p
+
+# 创建数据库
+CREATE DATABASE img2excel CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
 
 ## 安装说明
 
@@ -170,6 +217,16 @@ git push origin dev
 在 GitHub 上创建从 dev 到 main 的 Pull Request
 
 ## 更新日志
+
+### [2025-01-12]: [1.4.0]
+- 添加用户认证功能
+  - 实现用户注册和登录
+  - 添加会话管理
+  - 集成MySQL数据库
+- 优化代码结构
+  - 重构认证模块
+  - 更新依赖管理
+  - 完善文档说明
 
 ### [2025-01-11]: [latest]
 - 优化项目分支管理策略
