@@ -146,45 +146,58 @@ def init_session_state():
 def login_form():
     """登录表单"""
     with st.form("login_form"):
-        email = st.text_input("邮箱")
-        password = st.text_input("密码", type="password")
+        email = st.text_input("邮箱", placeholder="请输入注册邮箱")
+        password = st.text_input("密码", type="password", placeholder="请输入密码")
         submit = st.form_submit_button("登录")
 
         if submit:
+            if not email or not password:
+                st.error("请填写所有必填项")
+                return
+
             db = next(get_db())
-            user = authenticate_user(db, email, password)
+            user, error = authenticate_user(db, email, password)
+            
+            if error:
+                st.error(error)
+                return
+                
             if user:
                 st.session_state.user = user
                 st.session_state.authenticated = True
                 st.success("登录成功！")
                 st.experimental_rerun()
-            else:
-                st.error("邮箱或密码错误！")
 
 def register_form():
     """注册表单"""
     with st.form("register_form"):
-        email = st.text_input("邮箱")
-        password = st.text_input("密码", type="password")
-        confirm_password = st.text_input("确认密码", type="password")
+        email = st.text_input("邮箱", placeholder="请输入有效的邮箱地址")
+        password = st.text_input("密码", type="password", 
+                               help="密码必须包含字母、数字和特殊字符，长度至少8位")
+        confirm_password = st.text_input("确认密码", type="password",
+                                       placeholder="请再次输入密码")
         submit = st.form_submit_button("注册")
 
         if submit:
+            if not email or not password or not confirm_password:
+                st.error("请填写所有必填项")
+                return
+
             if password != confirm_password:
                 st.error("两次输入的密码不一致！")
                 return
 
             db = next(get_db())
-            existing_user = get_user_by_email(db, email)
-            if existing_user:
-                st.error("该邮箱已被注册！")
+            user, error = create_user(db, email, password)
+            
+            if error:
+                st.error(error)
                 return
-
-            try:
-                user = create_user(db, email, password)
-                st.success("注册成功！请登录。")
-            except Exception as e:
-                st.error(f"注册失败：{str(e)}")
+                
+            if user:
+                st.success("注册成功！请使用新账号登录。")
+                # 切换到登录标签页
+                st.experimental_set_query_params(tab="login")
 
 def main_app():
     """主应用界面"""

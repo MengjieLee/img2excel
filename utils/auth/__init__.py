@@ -9,6 +9,7 @@ from .auth import (
 )
 from .models import User
 from .database import init_db, get_db
+from .validators import validate_email, validate_password, sanitize_email
 
 __all__ = [
     "verify_password",
@@ -20,4 +21,7 @@ __all__ = [
     "User",
     "init_db",
     "get_db",
+    "validate_email",
+    "validate_password",
+    "sanitize_email",
 ]
