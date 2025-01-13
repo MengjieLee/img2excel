@@ -142,6 +142,12 @@ def init_session_state():
         st.session_state.user = None
     if "authenticated" not in st.session_state:
         st.session_state.authenticated = False
+    if "processed_files" not in st.session_state:
+        st.session_state.processed_files = set()
+    if "current_results" not in st.session_state:
+        st.session_state.current_results = {}
+    if "edited_results" not in st.session_state:
+        st.session_state.edited_results = {}
 
 def login_form():
     """登录表单"""
@@ -199,6 +205,31 @@ def register_form():
                 # 切换到登录标签页
                 st.experimental_set_query_params(tab="login")
 
+def get_file_hash(file_bytes: bytes) -> str:
+    """计算文件的MD5哈希值"""
+    import hashlib
+    return hashlib.md5(file_bytes).hexdigest()
+
+def process_image(image_bytes: bytes, file_name: str):
+    """处理图片并返回识别结果"""
+    try:
+        # 创建处理器实例
+        image_processor = ImageProcessor()
+        qwen_processor = QwenProcessor()
+        
+        # 处理图片
+        processed_image = image_processor.process_image(image_bytes)
+        result = qwen_processor.process_image(processed_image)
+        
+        if isinstance(result, dict):
+            return result
+        else:
+            st.error(f"处理失败: {result}")
+            return None
+    except Exception as e:
+        st.error(f"处理失败: {str(e)}")
+        return None
+
 def main_app():
     """主应用界面"""
     st.title("📊 图片转Excel工具")
@@ -233,7 +264,7 @@ def main_app():
         st.session_state.authenticated = False
         st.experimental_rerun()
 
-    # 上传区域
+    # 文件上传区域
     uploaded_files = st.file_uploader(
         "上传报销单图片",
         type=["jpg", "jpeg", "png"],
@@ -244,23 +275,76 @@ def main_app():
     if uploaded_files:
         for uploaded_file in uploaded_files:
             # 读取图片数据
-            image_bytes = uploaded_file.getvalue()
-            image = Image.open(io.BytesIO(image_bytes))
+            file_bytes = uploaded_file.read()
+            file_hash = get_file_hash(file_bytes)
             
-            # 创建两列布局
-            col1, col2 = st.columns(2)
+            # 检查是否已处理过该图片
+            if file_hash in st.session_state.processed_files:
+                st.warning(f"文件 '{uploaded_file.name}' 已经处理过了")
+                continue
             
-            with col1:
-                st.image(image, caption=f"报销单: {uploaded_file.name}", use_container_width=True)
+            # 显示图片
+            st.image(file_bytes, use_container_width=True)
             
-            with col2:
-                # 处理图片并保存Excel
-                with st.spinner(f"正在处理 {uploaded_file.name}..."):
-                    result, error, file_url = process_and_save(image_bytes, uploaded_file.name)
-                    if result:
-                        display_result(result, file_url)
-                    else:
-                        st.error(f"识别失败: {error}")
+            # 处理图片
+            with st.spinner("正在识别图片内容..."):
+                result = process_image(file_bytes, uploaded_file.name)
+                
+                if result:
+                    # 存储识别结果
+                    st.session_state.processed_files.add(file_hash)
+                    st.session_state.current_results[file_hash] = result
+                    
+                    # 创建可编辑的文本区域
+                    if file_hash not in st.session_state.edited_results:
+                        st.session_state.edited_results[file_hash] = result
+                    
+                    # 显示编辑区域
+                    st.subheader("识别结果")
+                    edited_result = {}
+                    for key, value in st.session_state.edited_results[file_hash].items():
+                        edited_value = st.text_area(
+                            f"{key}:",
+                            value=value,
+                            key=f"{file_hash}_{key}"
+                        )
+                        edited_result[key] = edited_value
+                    
+                    # 更新编辑后的结果
+                    st.session_state.edited_results[file_hash] = edited_result
+                    
+                    # 添加确认按钮
+                    if st.button("确认并生成Excel", key=f"confirm_{file_hash}"):
+                        try:
+                            # 生成Excel文件
+                            excel_processor = ExcelProcessor()
+                            excel_data = excel_processor.generate_excel(
+                                edited_result,
+                                uploaded_file.name
+                            )
+                            
+                            # 保存到MinIO
+                            storage = StorageManager()
+                            file_url = storage.save_file(excel_data, "xlsx")
+                            
+                            st.success("Excel文件已生成并保存")
+                            st.markdown(f"[点击下载Excel文件]({file_url})")
+                            
+                            # 清除当前文件的状态
+                            st.session_state.processed_files.remove(file_hash)
+                            del st.session_state.current_results[file_hash]
+                            del st.session_state.edited_results[file_hash]
+                            
+                        except Exception as e:
+                            st.error(f"生成Excel失败: {str(e)}")
+
+    # 添加清除按钮
+    if st.button("清除所有数据"):
+        st.session_state.processed_files.clear()
+        st.session_state.current_results.clear()
+        st.session_state.edited_results.clear()
+        st.success("所有数据已清除")
+        st.experimental_rerun()
 
 def main():
     """主函数"""
