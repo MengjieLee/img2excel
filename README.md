@@ -91,20 +91,20 @@ streamlit run streamlit_app.py
 ### 方式一：从阿里云镜像仓库拉取（推荐）
 ```bash
 # 拉取镜像（使用最新版本）
-docker pull crpi-608fba9xxjhcq7gx.cn-shanghai.personal.cr.aliyuncs.com/dcby/img2excel:latest
+docker pull crpi-608fba9xxjhcq7gx.cn-shanghai.personal.cr.aliyuncs.com/dcby/img2excel:1.3.2
 
 # 或拉取指定版本
-docker pull crpi-608fba9xxjhcq7gx.cn-shanghai.personal.cr.aliyuncs.com/dcby/img2excel:latest
+docker pull crpi-608fba9xxjhcq7gx.cn-shanghai.personal.cr.aliyuncs.com/dcby/img2excel:1.3.2
 
 # 运行容器
-docker run -p 9527:9527 --env-file .env crpi-608fba9xxjhcq7gx.cn-shanghai.personal.cr.aliyuncs.com/dcby/img2excel:latest
+docker run -p 9527:9527 --env-file .env crpi-608fba9xxjhcq7gx.cn-shanghai.personal.cr.aliyuncs.com/dcby/img2excel:1.3.2
 ```
 
 ### 方式二：本地构建
 ```bash
 # 构建并推送镜像
 chmod +x local_build_image.sh
-./local_build_image.sh <版本号>  # 例如：./local_build_image.sh latest
+./local_build_image.sh 1.3.2  # 例如：./local_build_image.sh 1.3.2
 ```
 
 local_build_image.sh 脚本功能：
@@ -171,7 +171,12 @@ git push origin dev
 
 ## 更新日志
 
-### [2025-01-11]: [latest]
+### [2025-01-14]: [1.3.3]
+- 优化项目依赖，移除未使用的库
+- 更新 Streamlit 至 1.41.1 版本
+- 删除未使用的类型检查工具
+
+### [2025-01-11]: [1.3.2]
 - 优化项目分支管理策略
 - 创建开发分支(dev)用于新功能开发
 - 更新文档，添加分支管理说明
@@ -183,7 +188,7 @@ git push origin dev
 - 更新 MinIO 客户端配置，修复初始化问题
 - 更新依赖版本范围，提高兼容性
 
-### [2025-01-10]: [latest]
+### [2025-01-10]: [1.3.2]
 - 优化 Docker 构建脚本，提高代码可维护性
 - 简化镜像构建流程，移除多余标签
 - 改进错误处理和日志输出

@@ -4,9 +4,9 @@ __pycache__/
 *$py.class
 *.so
 .Python
-env/
 build/
 develop-eggs/
+dist/
 downloads/
 eggs/
 .eggs/
@@ -33,14 +33,6 @@ ENV/
 # Environment variables
 .env
 
-# OS
-.DS_Store
-Thumbs.db
-
 # Project specific
-dist/
-*.jpg
-*.jpeg
-*.png
-*.txt
-!requirements.txt
+dist/*
+!dist/.gitkeep

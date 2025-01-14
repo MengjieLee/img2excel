@@ -33,12 +33,13 @@ check_env_vars() {
 
 # 函数：检查版本参数
 check_version() {
-    if [ -z "$1" ]; then
+    VERSION=$1
+    if [ -z "${VERSION}" ]; then
         echo "Error: Version parameter is required"
-        echo "Usage: ./local_build_image.sh <version>"
+        echo "Usage: $0 <version>"
+        echo "Example: $0 1.3.2"
         exit 1
     fi
-    VERSION=$1
     FULL_IMAGE_NAME="${REGISTRY}/${NAMESPACE}/${IMAGE_NAME}:${VERSION}"
 }
 
